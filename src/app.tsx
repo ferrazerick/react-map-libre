@@ -15,7 +15,7 @@ export default function App() {
       type: "fill",
       filter: ["all", ["==", "$type", "Polygon"], ["!=", "mode", "static"]],
       paint: {
-        "fill-color": "#FF5733", // Cor personalizada do polígono
+        "fill-color": "#9309c1", // Cor personalizada do polígono
         "fill-opacity": 0.5, // Opacidade do preenchimento
       },
     },
@@ -28,7 +28,7 @@ export default function App() {
         "line-join": "round",
       },
       paint: {
-        "line-color": "#000000", // Cor da borda
+        "line-color": "#44ff00", // Cor da borda
         "line-width": 2, // Espessura da linha
       },
     },
@@ -49,7 +49,7 @@ export default function App() {
       filter: ["all", ["==", "$type", "Point"], ["==", "meta", "midpoint"]],
       paint: {
         "circle-radius": 5,
-        "circle-color": "#FF0000", // Cor dos pontos médios ao editar
+        "circle-color": "#c5ac21", // Cor dos pontos médios ao editar
       },
     },
   ];
@@ -127,8 +127,12 @@ export default function App() {
           onMouseMove={onMouseMove}
           onClickMidpoint={onClick}
           onMoveMidpoint={onMouseMove}
+          features={Object.values(features)}
           styles={drawStyles}
-        />
+        >
+          <strong>TESTE</strong>
+          <p>BAO</p>
+        </CustomDrawControl>
       </Map>
       <PanelSupDir polygons={Object.values(features)} />
     </>
