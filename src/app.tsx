@@ -2,15 +2,13 @@ import * as React from "react";
 import { useState, useCallback } from "react";
 import { createRoot } from "react-dom/client";
 import { Map } from "@vis.gl/react-maplibre";
-
-import DrawControl from "./draw-control";
 import PanelSupDir from "./painel-sup-dir";
-
 import "@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css";
-import PolygonDraw from "./polygon-draw";
-import MapboxDraw from "@mapbox/mapbox-gl-draw";
+import CustomDrawControl from "./polygon-draw";
 
 export default function App() {
+  const [clickedMidpoint, setClickedMidpoint] = useState(null);
+  const [features, setFeatures] = useState({});
   const drawStyles = [
     {
       id: "gl-draw-polygon-fill", //preenchimento do polígono
@@ -56,16 +54,41 @@ export default function App() {
     },
   ];
 
-  const [features, setFeatures] = useState({});
+  const onClick = (e) => {
+    if (e.features.length) {
+      const feature = e.features[0];
+
+      // Se o usuário clicou em um midpoint, armazenamos seu ID
+      if (feature.properties && feature.properties.meta === "midpoint") {
+        setClickedMidpoint(feature.id);
+      }
+    }
+  };
+
+  const onMouseMove = (e) => {
+    if (e.features.length) {
+      const feature = e.features[0];
+
+      // Se um midpoint foi movido, marcar ele como alterado
+      if (feature.properties && feature.properties.meta === "midpoint") {
+        feature.properties.moved = true;
+      }
+    }
+  };
 
   const onUpdate = useCallback((e) => {
     setFeatures((currFeatures) => {
       const newFeatures = { ...currFeatures };
-      for (const f of e.features) {
+      e.features.forEach((f) => {
+        // Se for um midpoint que foi apenas clicado, não permitir a conversão
+        if (clickedMidpoint === f.id && !f.properties?.moved) {
+          return currFeatures;
+        }
         newFeatures[f.id] = f;
-      }
+      });
       return newFeatures;
     });
+    setClickedMidpoint(null);
   }, []);
 
   const onDelete = useCallback((e) => {
@@ -81,7 +104,6 @@ export default function App() {
 
   return (
     <>
-      {/* <PolygonDraw /> */}
       <Map
         initialViewState={{
           longitude: -44.989508,
@@ -90,7 +112,7 @@ export default function App() {
         }}
         mapStyle="https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json"
       >
-        <DrawControl
+        <CustomDrawControl
           position="top-left"
           displayControlsDefault={false}
           controls={{
@@ -101,6 +123,10 @@ export default function App() {
           onCreate={onUpdate}
           onUpdate={onUpdate}
           onDelete={onDelete}
+          onClick={onClick}
+          onMouseMove={onMouseMove}
+          onClickMidpoint={onClick}
+          onMoveMidpoint={onMouseMove}
           styles={drawStyles}
         />
       </Map>
