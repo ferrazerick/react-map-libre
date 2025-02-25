@@ -59,20 +59,41 @@ const CustomDrawControl: React.FC<CustomDrawControlProps> = ({
     };
   }, [clickedMidpoint, props.onClickMidpoint, props.onMoveMidpoint]);
 
-  // Calcula o centro do polígono para posicionar o conteúdo corretamente
+  const calculateCentroid = (coordinates: number[][]) => {
+    let xSum = 0;
+    let ySum = 0;
+    let area = 0;
+
+    const numPoints = coordinates.length;
+
+    for (let i = 0; i < numPoints; i++) {
+      const x1 = coordinates[i][0];
+      const y1 = coordinates[i][1];
+      const x2 = coordinates[(i + 1) % numPoints][0]; // Conecta com o próximo ponto (circular)
+      const y2 = coordinates[(i + 1) % numPoints][1];
+
+      const crossProduct = x1 * y2 - x2 * y1;
+      area += crossProduct;
+
+      xSum += (x1 + x2) * crossProduct;
+      ySum += (y1 + y2) * crossProduct;
+    }
+
+    // O centroide é a média ponderada com base na área
+    area *= 0.5;
+    const cx = xSum / (6 * area);
+    const cy = ySum / (6 * area);
+
+    return [cx, cy] as [number, number];
+  };
+
   useEffect(() => {
     if (props.features && props.features.length > 0) {
       const polygon = props.features[0]; // Pegamos o primeiro polígono desenhado
       if (polygon.geometry.type === "Polygon") {
         const coordinates = polygon.geometry.coordinates[0]; // Array de coordenadas do polígono
-        const center = coordinates.reduce(
-          (acc, coord) => [acc[0] + coord[0], acc[1] + coord[1]],
-          [0, 0]
-        );
-        setPolygonCenter([
-          center[0] / coordinates.length,
-          center[1] / coordinates.length,
-        ]);
+        const centroid = calculateCentroid(coordinates);
+        setPolygonCenter(centroid);
       }
     }
   }, [props.features]);
@@ -89,6 +110,10 @@ const CustomDrawControl: React.FC<CustomDrawControlProps> = ({
               padding: "5px",
               borderRadius: "4px",
               textAlign: "center",
+              justifyContent: "center",
+              position: "absolute",
+              transform: "translate(-50%, -50%)", // Centraliza o ponto central da div no ponto do polígono
+              // Certifique-se de que a div tenha tamanho adequado (caso necessário, ajuste)
             }}
           >
             {children}

@@ -8,6 +8,7 @@ import CustomDrawControl from "./polygon-draw";
 
 export default function App() {
   const [clickedMidpoint, setClickedMidpoint] = useState(null);
+  const [isDrawing, setIsDrawing] = useState(false);
   const [features, setFeatures] = useState({});
   const drawStyles = [
     {
@@ -53,6 +54,14 @@ export default function App() {
       },
     },
   ];
+  const handleDrawPolygon = () => {
+    setIsDrawing(true);
+  };
+
+  const handleUpdate = useCallback((e) => {
+    console.log("Polígono atualizado:", e);
+    setIsDrawing(false); // Desativa o modo de desenho após o primeiro clique
+  }, []);
 
   const onClick = (e) => {
     if (e.features.length) {
@@ -79,16 +88,20 @@ export default function App() {
   const onUpdate = useCallback((e) => {
     setFeatures((currFeatures) => {
       const newFeatures = { ...currFeatures };
-      e.features.forEach((f) => {
-        // Se for um midpoint que foi apenas clicado, não permitir a conversão
-        if (clickedMidpoint === f.id && !f.properties?.moved) {
-          return currFeatures;
+
+      e.features.forEach((feature) => {
+        newFeatures[feature.id] = feature;
+
+        if (feature.geometry.type === "Polygon") {
+          console.log(
+            "Novo polígono atualizado:",
+            feature.geometry.coordinates[0]
+          );
         }
-        newFeatures[f.id] = f;
       });
+
       return newFeatures;
     });
-    setClickedMidpoint(null);
   }, []);
 
   const onDelete = useCallback((e) => {
@@ -112,29 +125,41 @@ export default function App() {
         }}
         mapStyle="https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json"
       >
-        <CustomDrawControl
-          position="top-left"
-          displayControlsDefault={false}
-          controls={{
-            polygon: true,
-            trash: true,
-          }}
-          defaultMode="draw_polygon"
-          onCreate={onUpdate}
-          onUpdate={onUpdate}
-          onDelete={onDelete}
-          onClick={onClick}
-          onMouseMove={onMouseMove}
-          onClickMidpoint={onClick}
-          onMoveMidpoint={onMouseMove}
-          features={Object.values(features)}
-          styles={drawStyles}
-        >
-          <strong>TESTE</strong>
-          <p>BAO</p>
-        </CustomDrawControl>
+        {isDrawing && (
+          <CustomDrawControl
+            defaultMode="draw_polygon"
+            onCreate={onUpdate}
+            onUpdate={onUpdate}
+            onDelete={onDelete}
+            onClick={onClick}
+            onMouseMove={onMouseMove}
+            onClickMidpoint={onClick}
+            onMoveMidpoint={onMouseMove}
+            features={Object.values(features)}
+            styles={drawStyles}
+          >
+            <strong>TESTE</strong>
+            <p></p>
+          </CustomDrawControl>
+        )}
       </Map>
-      <PanelSupDir polygons={Object.values(features)} />
+      <button
+        onClick={handleDrawPolygon}
+        style={{
+          position: "absolute",
+          bottom: "20px",
+          left: "20px",
+          backgroundColor: "#9309c1",
+          color: "white",
+          padding: "10px 20px",
+          borderRadius: "5px",
+          border: "none",
+          cursor: "pointer",
+        }}
+      >
+        Desenhar Polígono
+      </button>
+      {/* <PanelSupDir polygons={Object.values(features)} /> */}
     </>
   );
 }
