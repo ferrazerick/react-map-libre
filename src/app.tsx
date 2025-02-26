@@ -2,26 +2,29 @@ import * as React from "react";
 import { useState, useCallback } from "react";
 import { createRoot } from "react-dom/client";
 import { Map } from "@vis.gl/react-maplibre";
-import PanelSupDir from "./painel-sup-dir";
 import "@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css";
 import CustomDrawControl from "./polygon-draw";
 
 export default function App() {
-  const [clickedMidpoint, setClickedMidpoint] = useState(null);
   const [isDrawing, setIsDrawing] = useState(false);
-  const [features, setFeatures] = useState({});
+  const [square, setSquare] = useState<number[][] | null>(null);
+  const [features, setFeatures] = useState<any>({});
+  const [selectedFeatureId, setSelectedFeatureId] = useState<string | null>(
+    null
+  ); // Para armazenar o ID do polígono selecionado
+
   const drawStyles = [
     {
-      id: "gl-draw-polygon-fill", //preenchimento do polígono
+      id: "gl-draw-polygon-fill",
       type: "fill",
       filter: ["all", ["==", "$type", "Polygon"], ["!=", "mode", "static"]],
       paint: {
-        "fill-color": "#9309c1", // Cor personalizada do polígono
-        "fill-opacity": 0.5, // Opacidade do preenchimento
+        "fill-color": "#9309c1",
+        "fill-opacity": 0.5,
       },
     },
     {
-      id: "gl-draw-polygon-stroke-active", // borda do polígono
+      id: "gl-draw-polygon-stroke-active",
       type: "line",
       filter: ["all", ["==", "$type", "Polygon"], ["!=", "mode", "static"]],
       layout: {
@@ -29,91 +32,88 @@ export default function App() {
         "line-join": "round",
       },
       paint: {
-        "line-color": "#44ff00", // Cor da borda
-        "line-width": 2, // Espessura da linha
+        "line-color": "#44ff00",
+        "line-width": 2,
       },
     },
     {
-      id: "gl-draw-vertex-active", // pontos originais
+      id: "gl-draw-vertex-active",
       type: "circle",
       filter: ["all", ["==", "$type", "Point"], ["==", "meta", "vertex"]],
       paint: {
         "circle-radius": 6,
-        "circle-color": "#00ffb3", // Cor dos pontos originais
+        "circle-color": "#00ffb3",
         "circle-stroke-width": 2,
         "circle-stroke-color": "#000000",
       },
     },
     {
-      id: "gl-draw-polygon-midpoint", // pontos médios
+      id: "gl-draw-polygon-midpoint",
       type: "circle",
       filter: ["all", ["==", "$type", "Point"], ["==", "meta", "midpoint"]],
       paint: {
         "circle-radius": 5,
-        "circle-color": "#c5ac21", // Cor dos pontos médios ao editar
+        "circle-color": "#c5ac21",
       },
     },
   ];
+
   const handleDrawPolygon = () => {
     setIsDrawing(true);
   };
 
   const handleUpdate = useCallback((e) => {
-    console.log("Polígono atualizado:", e);
-    setIsDrawing(false); // Desativa o modo de desenho após o primeiro clique
-  }, []);
-
-  const onClick = (e) => {
-    if (e.features.length) {
-      const feature = e.features[0];
-
-      // Se o usuário clicou em um midpoint, armazenamos seu ID
-      if (feature.properties && feature.properties.meta === "midpoint") {
-        setClickedMidpoint(feature.id);
-      }
-    }
-  };
-
-  const onMouseMove = (e) => {
-    if (e.features.length) {
-      const feature = e.features[0];
-
-      // Se um midpoint foi movido, marcar ele como alterado
-      if (feature.properties && feature.properties.meta === "midpoint") {
-        feature.properties.moved = true;
-      }
-    }
-  };
-
-  const onUpdate = useCallback((e) => {
     setFeatures((currFeatures) => {
       const newFeatures = { ...currFeatures };
 
       e.features.forEach((feature) => {
         newFeatures[feature.id] = feature;
-
-        if (feature.geometry.type === "Polygon") {
-          console.log(
-            "Novo polígono atualizado:",
-            feature.geometry.coordinates[0]
-          );
-        }
       });
 
       return newFeatures;
     });
   }, []);
 
-  const onDelete = useCallback((e) => {
-    setFeatures((currFeatures) => {
-      const newFeatures = { ...currFeatures };
-      for (const f of e.features) {
-        delete newFeatures[f.id];
-      }
-      console.log("teste", newFeatures);
-      return newFeatures;
-    });
-  }, []);
+  const onClick = (e) => {
+    if (!square) {
+      setSquare([[e.lngLat.lng, e.lngLat.lat]]);
+    }
+  };
+
+  const onMouseMove = (e) => {
+    if (square) {
+      const [x1, y1] = square[0];
+      const x2 = e.lngLat.lng;
+      const y2 = e.lngLat.lat;
+
+      setSquare([
+        [x1, y1],
+        [x1, y2],
+        [x2, y2],
+        [x2, y1],
+        [x1, y1],
+      ]);
+    }
+  };
+
+  const onDelete = useCallback(() => {
+    if (selectedFeatureId) {
+      setFeatures((currFeatures) => {
+        const newFeatures = { ...currFeatures };
+        delete newFeatures[selectedFeatureId]; // Remove o polígono selecionado
+        setSelectedFeatureId(null); // Limpa a seleção
+        return newFeatures;
+      });
+    }
+  }, [selectedFeatureId]);
+
+  const handleFeatureClick = (e) => {
+    const clickedFeature = e.features;
+    if (clickedFeature && clickedFeature.id) {
+      setSelectedFeatureId(clickedFeature.id); // Armazena o ID do polígono clicado
+      console.log("Polígono selecionado:", clickedFeature);
+    }
+  };
 
   return (
     <>
@@ -124,22 +124,26 @@ export default function App() {
           zoom: 12,
         }}
         mapStyle="https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json"
+        onClick={handleFeatureClick} // Configura o clique no mapa para selecionar um polígono
       >
         {isDrawing && (
           <CustomDrawControl
+            displayControlsDefault={false}
             defaultMode="draw_polygon"
-            onCreate={onUpdate}
-            onUpdate={onUpdate}
+            onCreate={handleUpdate}
+            onUpdate={handleUpdate}
             onDelete={onDelete}
             onClick={onClick}
             onMouseMove={onMouseMove}
-            onClickMidpoint={onClick}
-            onMoveMidpoint={onMouseMove}
             features={Object.values(features)}
             styles={drawStyles}
           >
-            <strong>TESTE</strong>
-            <p></p>
+            <strong>Coordenadas do polígono</strong>
+            <p>
+              {JSON.stringify(
+                Object.values(features)[0]?.geometry?.coordinates[0]
+              )}
+            </p>
           </CustomDrawControl>
         )}
       </Map>

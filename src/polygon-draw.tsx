@@ -12,8 +12,10 @@ interface CustomDrawControlProps {
 
 const CustomDrawControl: React.FC<CustomDrawControlProps> = ({
   children,
+  features,
   ...props
 }) => {
+  console.log("props", props);
   const mapRef = useRef<any>(null);
   const [clickedMidpoint, setClickedMidpoint] = useState<string | null>(null);
   const [polygonCenter, setPolygonCenter] = useState<[number, number] | null>(
@@ -36,6 +38,10 @@ const CustomDrawControl: React.FC<CustomDrawControlProps> = ({
         if (props.onClickMidpoint) {
           props.onClickMidpoint(midpoint);
         }
+      } else {
+        const features = map.queryRenderedFeatures(e.point, {
+          layers: ["gl-draw-polygon-fill"],
+        });
       }
     });
 
@@ -88,15 +94,15 @@ const CustomDrawControl: React.FC<CustomDrawControlProps> = ({
   };
 
   useEffect(() => {
-    if (props.features && props.features.length > 0) {
-      const polygon = props.features[0]; // Pegamos o primeiro polígono desenhado
+    if (features && features.length > 0) {
+      const polygon = features[0]; // Pegamos o primeiro polígono desenhado
       if (polygon.geometry.type === "Polygon") {
         const coordinates = polygon.geometry.coordinates[0]; // Array de coordenadas do polígono
         const centroid = calculateCentroid(coordinates);
         setPolygonCenter(centroid);
       }
     }
-  }, [props.features]);
+  }, [features]);
 
   return (
     <>
@@ -112,8 +118,7 @@ const CustomDrawControl: React.FC<CustomDrawControlProps> = ({
               textAlign: "center",
               justifyContent: "center",
               position: "absolute",
-              transform: "translate(-50%, -50%)", // Centraliza o ponto central da div no ponto do polígono
-              // Certifique-se de que a div tenha tamanho adequado (caso necessário, ajuste)
+              transform: "translate(-50%, -50%)",
             }}
           >
             {children}
