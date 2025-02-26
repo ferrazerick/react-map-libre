@@ -30,7 +30,7 @@ export default function PageTest() {
 
     map.on("load", () => {
       const drawControl = new MaplibreTerradrawControl({
-        modes: ["polygon", "rectangle", "circle", "select", "delete-selection"],
+        modes: ["select", "delete-selection", "polygon", "rectangle", "circle"],
         open: true,
         modeOptions: {
           polygon: new TerraDrawPolygonMode({
@@ -75,6 +75,6 @@ export default function PageTest() {
   );
 }
 
-export function renderToDom(container) {
-  createRoot(container).render(<PageTest />);
-}
+// export function renderToDom(container) {
+//   createRoot(container).render(<PageTest />);
+// }
