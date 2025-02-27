@@ -50,6 +50,20 @@ export default function PageTest() {
 
       map.addControl(drawControl, "top-left");
       drawControlRef.current = drawControl;
+
+      // Obtém a instância do TerraDraw para capturar o geoJSON do polígono selecionado
+      const drawInstance = drawControl.getTerraDrawInstance();
+      if (drawInstance) {
+        drawInstance.on("select", (id) => {
+          const snapshot = drawInstance.getSnapshot();
+          const selectedFeature = snapshot?.find(
+            (feature) => feature.id === id
+          );
+          const coordinates = selectedFeature.geometry.coordinates[0];
+          console.log("Coordenadas do polígono selecionado:", coordinates);
+          console.log("GeoJSON do polígono selecionado:", selectedFeature);
+        });
+      }
     });
 
     return () => {
@@ -69,12 +83,11 @@ export default function PageTest() {
         width: "100vw",
         height: "100vh",
         position: "relative",
-        backgroundColor: "red",
       }}
     />
   );
 }
 
-// export function renderToDom(container) {
-//   createRoot(container).render(<PageTest />);
-// }
+export function renderToDom(container) {
+  createRoot(container).render(<PageTest />);
+}
